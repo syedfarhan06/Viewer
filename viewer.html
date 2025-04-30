@@ -4,129 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>3D Model Viewer</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
-    html, body {
-      margin: 0;
-      height: 100%;
-      overflow: hidden;
-      background-color: #1a1a1a;
-      font-family: sans-serif;
-    }
-    #loading {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: 1rem;
-      z-index: 10;
-    }
-    canvas {
-      display: block;
-      touch-action: none; /* Better mobile interaction */
+    body { margin: 0; background: #1a1a1a; }
+    model-viewer {
+      width: 100vw;
+      height: 100vh;
     }
   </style>
 </head>
 <body>
-  <div id="loading">Loading model...</div>
-
-  <script type="module">
-    // Fallback function if CDN fails
-    async function loadThreeJS() {
-      try {
-        // Attempt to load from CDN first
-        const three = await import('https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js');
-        const { OrbitControls } = await import('https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/controls/OrbitControls.js');
-        const { GLTFLoader } = await import('https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/loaders/GLTFLoader.js');
-        return { THREE: three, OrbitControls, GLTFLoader };
-      } catch (error) {
-        console.error("CDN failed, trying local fallback...");
-        // Local fallback (place three.module.js in same directory)
-        const three = await import('./three.module.js');
-        const { OrbitControls } = await import('./OrbitControls.js');
-        const { GLTFLoader } = await import('./GLTFLoader.js');
-        return { THREE: three, OrbitControls, GLTFLoader };
-      }
-    }
-
-    // Initialize viewer after Three.js loads
-    loadThreeJS().then(({ THREE, OrbitControls, GLTFLoader }) => {
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x1a1a1a);
-
-      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.set(3, 2, 5);
-
-      const renderer = new THREE.WebGLRenderer({ 
-        antialias: true,
-        powerPreference: "high-performance" 
-      });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Avoid excessive pixel ratios
-      document.body.appendChild(renderer.domElement);
-
-      const controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.screenSpacePanning = true; // Better mobile support
-
-      // Lighting
-      scene.add(
-        new THREE.AmbientLight(0xffffff, 0.5),
-        new THREE.DirectionalLight(0xffffff, 1).position.set(5, 5, 5)
-      );
-
-      // Grid
-      scene.add(new THREE.GridHelper(10, 20, 0x444444, 0x222222));
-
-      // Model loading with progress feedback
-      const loadingElem = document.getElementById('loading');
-      new GLTFLoader().load(
-        'model.glb',
-        (gltf) => {
-          const model = gltf.scene;
-          scene.add(model);
-
-          // Auto-center and scale
-          const box = new THREE.Box3().setFromObject(model);
-          const center = box.getCenter(new THREE.Vector3());
-          const size = box.getSize(new THREE.Vector3()).length();
-          
-          model.position.sub(center);
-          camera.position.set(center.x + size, center.y + size * 0.6, center.z + size);
-          camera.lookAt(center);
-          controls.target.copy(center);
-          
-          loadingElem.remove();
-        },
-        (xhr) => {
-          // Optional: Show loading progress
-          loadingElem.textContent = `Loading ${(xhr.loaded / xhr.total * 100).toFixed(1)}%`;
-        },
-        (error) => {
-          console.error('Model load failed:', error);
-          loadingElem.textContent = 'Error loading model. Check console.';
-        }
-      );
-
-      // Animation loop
-      function animate() {
-        requestAnimationFrame(animate);
-        controls.update();
-        renderer.render(scene, camera);
-      }
-      animate();
-
-      // Handle resize
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-    }).catch(error => {
-      document.getElementById('loading').textContent = 'Failed to load 3D engine.';
-      console.error("Three.js initialization failed:", error);
-    });
-  </script>
+  <model-viewer
+    src="model.glb"
+    alt="3D model"
+    camera-controls
+    auto-rotate
+    background-color="#1a1a1a">
+  </model-viewer>
 </body>
 </html>
